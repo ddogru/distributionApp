@@ -1,0 +1,464 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- Page-specific content goes here -->
+
+        <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title"> Form elements </h3>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="#">Forms</a></li>
+                  <li class="breadcrumb-item active" aria-current="page">Form elements</li>
+                </ol>
+              </nav>
+            </div>
+            <div class="row">
+
+                <!--Assign Package Form-->
+              <div class="col-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+
+                      <h4 class="card-title">Assign Package | Step 1</h4>
+
+<form class="forms-sample" method="post" id="assignPackageForm">
+    {% csrf_token %}
+    <!-- Vehicle Selection -->
+    <div class="form-group">
+        <label for="vehicleSelect">Select Vehicle</label>
+        <select class="form-control" id="vehicleSelect" name="vehicle_id">
+            <option value="" disabled selected>Select a vehicle</option>
+            {% for vehicle in vehicles %}
+                <option value="{{ vehicle.id }}" data-vehicle-type="{{ vehicle.vehicle_type }}" data-weight="{{ vehicle.weight_capacity }}" data-size="{{ vehicle.size_capacity }}" data-km="{{ vehicle.km_capacity }}">
+                    {{ vehicle.vehicle_name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Display Vehicle Capacity -->
+    <div class="form-group">
+        <label for="vehicleCapacity">Vehicle's Max Capacity:</label>
+        <p id="vehicleCapacity">0 kg, 0 m³, 0 km</p>
+    </div>
+
+    <!-- Display Total Weight and Size -->
+    <div class="form-group">
+        <label for="totalPackageStats">Counter Total Package Weights and Sizes:</label>
+        <p id="totalPackageStats">0 kg, 0 m³</p>
+    </div>
+
+    <!-- Package Selection -->
+    <div class="form-group">
+        <label for="packageSelect">Select Package</label>
+        <div id="packageList">
+            <select class="form-control package-select" name="package_id[]" style="margin-top: 10px">
+                <option value="" disabled selected>Select a package</option>
+                {% for package in packages %}
+                    <option value="{{ package.id }}" data-package-id="{{ package.id }}" data-package-type="{{ package.package_type }}" data-weight="{{ package.weight }}" data-size="{{ package.size }}" data-location="{{ package.package_location }}">
+                        {{ package.package_name }} ({{ package.weight }} kg, {{ package.size }} m³)
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Hidden inputs for categorized packages -->
+    <input type="hidden" id="area1Packages" name="area1_packages" value='[]'>
+    <input type="hidden" id="area2Packages" name="area2_packages" value='[]'>
+    <input type="hidden" id="area3Packages" name="area3_packages" value='[]'>
+<script>
+    document.addEventListener('DOMContentLoaded', function (){
+        var area1 = document.getElementById('area1Packages');
+        var area2 = document.getElementById('area2Packages');
+        var area3 = document.getElementById('area3Packages');
+        console.log("deneme area1:", area1);
+        console.log("deneme area2:", area2);
+        console.log("deneme area3:", area3);
+    })
+
+</script>
+    <input type="hidden" id="routeCalculated" name="route_calculated" value="false">
+
+
+    <!-- Button to Add More Packages -->
+    <button type="button" class="btn btn-primary" id="addPackage">Add More Package +</button>
+
+    <!-- Button to calculate the total route with the selected packages before going to the next step -->
+    <button type="button" class="btn btn-primary" id="calculateRoute">Calculate Route</button>
+
+    <!-- Button to send packages to the next step -->
+    <button type="submit" class="btn btn-primary" id="nextButton" disabled>Next -></button>
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        //preloading if there is any temporary selection
+        var vehicleField = document.getElementById('vehicleSelect');
+        var packageField = document.querySelector('#packageList .package-select');
+
+        var selectedVehicle = '{{ selected_vehicle }}';
+        var selectedPackage = '{{ selected_package }}';
+
+        if (selectedVehicle) {
+            vehicleField.value = selectedVehicle;
+
+            // Trigger vehicle change event to update capacity
+            vehicleField.dispatchEvent(new Event('change'));
+
+            if (selectedPackage) {
+                packageField.value = selectedPackage;
+
+                // Trigger package change event to update total weight and size
+                packageField.dispatchEvent(new Event('change'));
+            }
+            updateTotal();
+        }
+
+        //normal loading
+        var vehicleSelect = document.getElementById('vehicleSelect');
+        var packageList = document.getElementById('packageList');
+        var calculateRouteButton = document.getElementById('calculateRoute');
+        var nextButton = document.getElementById('nextButton');
+        var routeCalculatedInput = document.getElementById('routeCalculated');
+        var assignPackageForm = document.getElementById('assignPackageForm');
+
+        // Vehicle selection event
+        vehicleSelect.addEventListener('change', function () {
+            var selectedOption = this.options[this.selectedIndex];
+            var weightCapacity = selectedOption.getAttribute('data-weight');
+            var sizeCapacity = selectedOption.getAttribute('data-size');
+            var kmCapacity = selectedOption.getAttribute('data-km');
+            document.getElementById('vehicleCapacity').textContent = weightCapacity + ' kg, ' + sizeCapacity + ' m³, ' + kmCapacity + ' km';
+
+            // Update total when vehicle changes
+            updateTotal();
+        });
+
+        // Package selection event
+        packageList.addEventListener('change', function (event) {
+            var selectedVehicleOption = vehicleSelect.options[vehicleSelect.selectedIndex];
+            var vehicleType = selectedVehicleOption.getAttribute('data-vehicle-type');
+            var weightCapacity = parseFloat(selectedVehicleOption.getAttribute('data-weight'));
+            var sizeCapacity = parseFloat(selectedVehicleOption.getAttribute('data-size'));
+
+            var selectedPackageOption = event.target.options[event.target.selectedIndex];
+            var packageType = selectedPackageOption.getAttribute('data-package-type');
+            var packageWeight = parseFloat(selectedPackageOption.getAttribute('data-weight'));
+            var packageSize = parseFloat(selectedPackageOption.getAttribute('data-size'));
+
+            // Check if package type matches vehicle type
+            if (vehicleType !== packageType) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: "Package's type didn't match with the vehicle's type!",
+                    icon: 'error',
+                });
+                event.target.value = ''; // Reset the package selection
+                return;
+            }
+
+            // Calculate total weight and size excluding the new package
+            var totalWeight = packageWeight;
+            var totalSize = packageSize;
+            document.querySelectorAll('.package-select').forEach(function (select) {
+                if (select !== event.target && select.value) {
+                    var selectedOption = select.options[select.selectedIndex];
+                    totalWeight += parseFloat(selectedOption.getAttribute('data-weight'));
+                    totalSize += parseFloat(selectedOption.getAttribute('data-size'));
+                }
+            });
+
+            // Check if the total exceeds the vehicle's capacity
+    if (totalWeight > weightCapacity || totalSize > sizeCapacity) {
+        // Check for other vehicles of the same type
+        var otherVehicles = Array.from(vehicleSelect.options).filter(function (option) {
+            return option !== selectedVehicleOption && option.getAttribute('data-vehicle-type') === vehicleType;
+        });
+
+        if (otherVehicles.length > 0) {
+            Swal.fire({
+                title: 'Capacity Exceeded!',
+                text: "The total weight or size exceeds the vehicle's capacity.",
+                icon: 'error',
+                showCancelButton: true,
+                cancelButtonText: 'Close',
+                confirmButtonText: 'Assign to another vehicle',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Get all package select elements
+                    var packageSelects = document.querySelectorAll('.package-select');
+                    // Find the last selected package
+                    var lastSelectedPackage = null;
+                    packageSelects.forEach(function (select) {
+                        if (select.value) {
+                            lastSelectedPackage = select;
+
+                        }
+                    });
+
+                    if (lastSelectedPackage) {
+                        var selectedPackageId = lastSelectedPackage.value;
+                        var selectedVehicleType = selectedVehicleOption.getAttribute('data-vehicle-type');
+
+                        // Find another vehicle with the same type
+                        var otherVehicleOption = Array.from(vehicleSelect.options).find(function (option) {
+                            return option !== selectedVehicleOption && option.getAttribute('data-vehicle-type') === selectedVehicleType;
+                        });
+
+                        if (otherVehicleOption) {
+                            var otherVehicleId = otherVehicleOption.value;
+
+                            // Send the other vehicle ID and selected package ID to the server via AJAX
+                            fetch('/save-temporary-selection/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': '{{ csrf_token }}', // Include CSRF token for Django
+                                },
+                                body: JSON.stringify({
+                                    vehicle_id: otherVehicleId,
+                                    package_id: selectedPackageId,
+                                }),
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Temporary selection saved:', data);
+                                // Notify the user that the selection has been saved
+                                Swal.fire({
+                                    title: 'Temporary selection Saved',
+                                    text: 'The package and vehicle selection has been temporarily saved. You can continue your assignments.',
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                });
+                            })
+                            .catch(error => console.error('Error:', error));
+                        } else {
+                            Swal.fire({
+                                title: 'No Other Vehicle Found',
+                                text: "There are no other vehicles available with the same type.",
+                                icon: 'warning',
+                            });
+                        }
+                    }
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Capacity Exceeded!',
+                text: "The total weight or size exceeds the vehicle's capacity. You may want to ask for a new vehicle..",
+                icon: 'error',
+                showCancelButton: true,
+                cancelButtonText: 'Close',
+                confirmButtonText: 'Add new vehicle',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Open a new tab to add a new vehicle
+                    window.open('/add-vehicle/', '_blank');
+                }
+            });
+        }
+        event.target.value = ''; // Reset the package selection
+    } else {
+        updateTotal();
+    }
+});
+
+        // Add more package event
+        document.getElementById('addPackage').addEventListener('click', function () {
+            var newSelect = packageList.firstElementChild.cloneNode(true);
+            packageList.appendChild(newSelect);
+        });
+
+        function updateTotal() {
+            var totalWeight = 0;
+            var totalSize = 0;
+
+            document.querySelectorAll('.package-select').forEach(function (select) {
+                if (select.value) {
+                    var selectedOption = select.options[select.selectedIndex];
+                    totalWeight += parseFloat(selectedOption.getAttribute('data-weight'));
+                    totalSize += parseFloat(selectedOption.getAttribute('data-size'));
+                }
+            });
+
+            document.getElementById('totalPackageStats').textContent = totalWeight + ' kg, ' + totalSize + ' m³';
+        }
+
+        // Calculate Route button click event
+calculateRouteButton.addEventListener('click', function () {
+    // Gather selected package locations and IDs
+    var locations = [];
+    var packageIds = [];
+
+    document.querySelectorAll('.package-select').forEach(function (select) {
+        if (select.value) {
+            var selectedOption = select.options[select.selectedIndex];
+            var location = selectedOption.getAttribute('data-location'); // Assuming the location is stored in a data attribute
+            var packageId = select.value; // Assuming the value of the select element is the package ID
+
+            // Push the location and corresponding package ID into the arrays
+            locations.push(location);
+            packageIds.push(packageId);
+        }
+    });
+
+    if (locations.length > 0 && packageIds.length > 0) {
+        console.log("Locations:", locations);
+        console.log("Package IDs:", packageIds);
+
+        // Pass both locations and package IDs to calculateRoute function
+        calculateRoute(locations, packageIds);
+    } else {
+        Swal.fire({
+            title: 'Error!',
+            text: 'Please select at least one package.',
+            icon: 'error',
+        });
+    }
+});
+
+    async function calculateRoute(locations, packageIds) {
+    var origin = "Mithatpaşa Mh., 533. Sk No:1, 35471 Menderes/İzmir";
+    var geocodedLocations = await geocodeAddresses([origin, ...locations, origin]);
+
+    if (geocodedLocations.length < 2) {
+        Swal.fire({
+            title: 'Error!',
+            text: 'Could not geocode all addresses.',
+            icon: 'error',
+        });
+        return null;
+    }
+
+    var directionsService = new google.maps.DirectionsService();
+    return new Promise((resolve, reject) => {
+        directionsService.route({
+            origin: geocodedLocations[0],
+            destination: geocodedLocations[0],
+            waypoints: geocodedLocations.slice(1, -1).map(location => ({ location: location, stopover: true })),
+            optimizeWaypoints: true,
+            travelMode: google.maps.TravelMode.DRIVING
+        }, function (response, status) {
+            if (status === google.maps.DirectionsStatus.OK) {
+                var totalDistance = 0;
+                var distances = [];
+                response.routes[0].legs.forEach((leg, index) => {
+                    totalDistance += leg.distance.value / 1000; // Convert meters to kilometers
+                    if (index > 0) {
+                        distances.push(leg.distance.value / 1000); // Collect distance for each leg except the first one (starting point to first package)
+                    }
+                });
+
+                // Ensure we have the same number of distances and locations
+                if (distances.length !== locations.length) {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Mismatch between the number of locations and distances.',
+                        icon: 'error',
+                    });
+                    reject(false);
+                    return;
+                }
+
+                // Combine locations with their corresponding package IDs
+                var locationPackagePairs = locations.map((location, index) => ({
+                    location: location,
+                    packageId: packageIds[index]
+                }));
+
+                // Sort the pairs by distance in ascending order
+                locationPackagePairs.sort((a, b) => distances[locations.indexOf(a.location)] - distances[locations.indexOf(b.location)]);
+
+                // Calculate the count of packages for each area
+                var area1Count = Math.ceil(locationPackagePairs.length / 3);
+                var area2Count = Math.ceil((locationPackagePairs.length - area1Count) / 2);
+                var area3Count = locationPackagePairs.length - area1Count - area2Count;
+
+                console.log(`area1Count: ${area1Count}, area2Count: ${area2Count}, area3Count: ${area3Count}`);
+
+                // Distribute the packages among the three areas
+                var area1Packages = locationPackagePairs.slice(0, area1Count);
+                var area2Packages = locationPackagePairs.slice(area1Count, area1Count + area2Count);
+                var area3Packages = locationPackagePairs.slice(area1Count + area2Count);
+
+                // Log the categorized packages
+                console.log("Area 1 Packages:", area1Packages);
+                console.log("Area 2 Packages:", area2Packages);
+                console.log("Area 3 Packages:", area3Packages);
+
+                // Set the hidden inputs' values with JSON strings containing package IDs and locations
+                document.getElementById('area1Packages').value = JSON.stringify(area1Packages);
+                document.getElementById('area2Packages').value = JSON.stringify(area2Packages);
+                document.getElementById('area3Packages').value = JSON.stringify(area3Packages);
+
+                // Log the categorized packages
+                console.log("Area 1 Packages:", area1Packages);
+                console.log("Area 2 Packages:", area2Packages);
+                console.log("Area 3 Packages:", area3Packages);
+
+                // Indicate that the route was successfully calculated
+                routeCalculatedInput.value = 'true';
+                nextButton.disabled = false;
+
+                Swal.fire({
+                    title: 'Success!',
+                    text: `Route calculated successfully. Total distance: ${totalDistance.toFixed(2)} km.`,
+                    icon: 'success',
+                });
+
+                resolve(true);
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Could not calculate the route.',
+                    icon: 'error',
+                });
+                reject(false);
+            }
+        });
+    });
+}
+
+        // Form submit event
+        assignPackageForm.addEventListener('submit', function (event) {
+            if (routeCalculatedInput.value !== 'true') {
+                event.preventDefault();
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Please calculate the route before proceeding.',
+                    icon: 'error',
+                });
+                console.log('Route not calculated. Form submission prevented.');
+            }
+        });
+
+        function geocodeAddresses(locations) {
+            var geocoder = new google.maps.Geocoder();
+            var promises = locations.map(function (location) {
+                return new Promise(function (resolve, reject) {
+                    geocoder.geocode({ address: location }, function (results, status) {
+                        if (status === google.maps.GeocoderStatus.OK && results[0]) {
+                            resolve(results[0].geometry.location);
+                        } else {
+                            reject(null);
+                        }
+                    });
+                });
+            });
+            return Promise.all(promises);
+        }
+    });
+</script>
+
+
+
+            </div>
+          </div>
+    <!-- You can add more HTML elements as needed for your homepage -->
+{% endblock %}

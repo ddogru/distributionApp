@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- Page-specific content goes here -->
+
+        <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title"> Form elements </h3>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="#">Forms</a></li>
+                  <li class="breadcrumb-item active" aria-current="page">Form elements</li>
+                </ol>
+              </nav>
+            </div>
+            <div class="row">
+
+                <!--Add Product Form-->
+              <div class="col-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Add Package</h4>
+
+                        <form class="forms-sample" method="post" id="packageForm">
+                        {% csrf_token %}
+                        <!-- Product Basic Information -->
+                        <div class="form-group">
+                            <label for="productPrice">Package Name</label>
+                            <input type="text" class="form-control" id="packageName" name="package_name" placeholder="Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="productPrice">Weight</label>
+                            <input type="text" class="form-control" id="packageWeight" name="weight" placeholder="Weight (kg)">
+                        </div>
+                        <div class="form-group">
+                            <label for="productCost">Size</label>
+                            <input type="text" class="form-control" id="packageSize" name="size" placeholder="Size (m3)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="productCategory">Type</label>
+                            <select class="form-control" id="packageType" name="type">
+                                <option value="normal">Normal</option>
+                                <option value="cold">Cold</option>
+                            </select>
+                        </div>
+
+                            <div class="form-group">
+                            <label for="productCost">Delivery Address</label>
+                            <input type="text" class="form-control" id="packageLocation" name="package_location" placeholder="Address">
+                        </div>
+
+
+                        <!-- Submission Buttons -->
+                        <button type="submit" class="btn btn-gradient-primary me-2">Submit</button>
+                        <button type="button" class="btn btn-light">Cancel</button>
+                    </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.getElementById('packageForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+
+        fetch("{% url 'add-package' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Package added successfully!',
+                    icon: 'success'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message || 'An error occurred while adding the package.',
+                    icon: 'error'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred: ' + error,
+                icon: 'error'
+            });
+        });
+    });
+
+
+
+        // Utility function to get a cookie value
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+    </script>            </div>
+          </div>
+    <!-- You can add more HTML elements as needed for your homepage -->
+{% endblock %}
+

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- Page-specific content goes here -->
+
+    <div class="content-wrapper">
+            <div class="page-header">
+                <!--
+              <h3 class="page-title"> Product Table </h3>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="#">Tables</a></li>
+                  <li class="breadcrumb-item active" aria-current="page">Basic tables</li>
+                </ol>
+              </nav>
+              -->
+            </div>
+            <div class="row">
+
+                <!--Vehicle Table-->
+              <div class="col-lg-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Vehicles</h4>
+                    <table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Vehicle ID</th>
+            <th>Vehicle Name</th>
+            <th>Weight Capacity</th>
+            <th>Size Capacity</th>
+            <th>Km Capacity</th>
+            <th>Vehicle Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for vehicle in vehicles %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ vehicle.id }}</td>
+            <td>{{ vehicle.vehicle_name }}</td>
+            <td>{{ vehicle.weight_capacity }}</td>
+            <td>{{ vehicle.size_capacity }}</td>
+            <td>{{ vehicle.km_capacity }}</td>
+            <td>{{ vehicle.vehicle_type }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+                  </div>
+                </div>
+              </div>
+                <!--/Product Table-->
+
+            </div>
+          </div>
+
+    <!-- You can add more HTML elements as needed for your homepage -->
+{% endblock %}
+

@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- Page-specific content goes here -->
+
+        <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title"> Form elements </h3>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="#">Forms</a></li>
+                  <li class="breadcrumb-item active" aria-current="page">Form elements</li>
+                </ol>
+              </nav>
+            </div>
+            <div class="row">
+
+                <!--Assign Package Form-->
+              <div class="col-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+
+                  <h4 class="card-title">Assign Package | Step 2</h4>
+<form class="forms-sample" method="post" id="assignPackageForm2">
+    {% csrf_token %}
+
+    <!-- Display Selected Vehicle -->
+    <div class="form-group">
+        <label for="vehicleInfo">Selected Vehicle:</label>
+        <p id="vehicleInfo">{{ vehicle.vehicle_name }} ({{ vehicle.weight_capacity }} kg, {{ vehicle.size_capacity }} m³)</p>
+    </div>
+
+    <!-- Package Selection for Area 1 -->
+    <div class="form-group">
+        <label for="area1Packages">Area 1 Packages</label>
+        <div id="area1Packages">
+            {% for package in packages %}
+                <div>
+                    <input type="checkbox" name="area1_package_ids[]" value="{{ package.id }}" class="package-checkbox" data-area="area1">
+                    {{ package.package_name }} ({{ package.package_location }})
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Package Selection for Area 2 -->
+    <div class="form-group">
+        <label for="area2Packages">Area 2 Packages</label>
+        <div id="area2Packages">
+            {% for package in packages %}
+                <div>
+                    <input type="checkbox" name="area2_package_ids[]" value="{{ package.id }}" class="package-checkbox" data-area="area2">
+                    {{ package.package_name }} ({{ package.package_location }})
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Package Selection for Area 3 -->
+    <div class="form-group">
+        <label for="area3Packages">Area 3 Packages</label>
+        <div id="area3Packages">
+            {% for package in packages %}
+                <div>
+                    <input type="checkbox" name="area3_package_ids[]" value="{{ package.id }}" class="package-checkbox" data-area="area3">
+                    {{ package.package_name }} ({{ package.package_location }})
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Submission Buttons -->
+    <button type="submit" class="btn btn-gradient-primary me-2">Submit</button>
+    <button type="button" class="btn btn-light">Cancel</button>
+</form>
+
+<!-- JavaScript -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const packageCheckboxes = document.querySelectorAll('.package-checkbox');
+        const area1Packages = JSON.parse('{{ area1_package_ids|safe }}').map(id => parseInt(id));
+        const area2Packages = JSON.parse('{{ area2_package_ids|safe }}').map(id => parseInt(id));
+        const area3Packages = JSON.parse('{{ area3_package_ids|safe }}').map(id => parseInt(id));
+
+        console.log('Area 1 Packages:', area1Packages);
+        console.log('Area 2 Packages:', area2Packages);
+        console.log('Area 3 Packages:', area3Packages);
+
+        packageCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const packageId = parseInt(this.value);
+                const area = this.dataset.area;
+
+                if (this.checked) {
+                    if (!isPackageInArea(packageId, area)) {
+                        this.checked = false;
+                        Swal.fire({
+                            title: 'Error!',
+                            text: `Package does not belong to ${area} area.`,
+                            icon: 'error',
+                        });
+                    } else {
+                        disableOtherCheckboxes(packageId, area);
+                    }
+                } else {
+                    enableOtherCheckboxes(packageId, area);
+                }
+            });
+        });
+
+        function isPackageInArea(packageId, area) {
+            switch (area) {
+                case 'area1':
+                    return area1Packages.includes(packageId);
+                case 'area2':
+                    return area2Packages.includes(packageId);
+                case 'area3':
+                    return area3Packages.includes(packageId);
+                default:
+                    return false;
+            }
+        }
+
+        function disableOtherCheckboxes(packageId, selectedArea) {
+            packageCheckboxes.forEach(checkbox => {
+                if (checkbox.value === packageId.toString() && checkbox.dataset.area !== selectedArea) {
+                    checkbox.disabled = true;
+                }
+            });
+        }
+
+        function enableOtherCheckboxes(packageId, selectedArea) {
+            packageCheckboxes.forEach(checkbox => {
+                if (checkbox.value === packageId.toString() && checkbox.dataset.area !== selectedArea) {
+                    checkbox.disabled = false;
+                }
+            });
+        }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+            </div>
+          </div>
+    <!-- You can add more HTML elements as needed for your homepage -->
+              <script>
+        const area1Packages = [1, 2, 3];
+        const area2Packages = [4, 5, 6];
+        const area3Packages = [7, 8, 9];
+
+        console.log('Area 1 Packages:', area1Packages);
+        console.log('Area 2 Packages:', area2Packages);
+        console.log('Area 3 Packages:', area3Packages);
+    </script>
+{% endblock %}

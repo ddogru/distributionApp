@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- Page-specific content goes here -->
+
+        <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title"> Form elements </h3>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="#">Forms</a></li>
+                  <li class="breadcrumb-item active" aria-current="page">Form elements</li>
+                </ol>
+              </nav>
+            </div>
+            <div class="row">
+
+                <!--Add Product Form-->
+              <div class="col-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Add Vehicle</h4>
+
+<form class="forms-sample" method="post" id="vehicleForm">
+    {% csrf_token %}
+    <!-- Vehicle Basic Information -->
+    <div class="form-group">
+        <label for="vehicleName">Vehicle Name</label>
+        <input type="text" class="form-control" id="vehicleName" name="vehicle_name" placeholder="Vehicle Name">
+    </div>
+    <div class="form-group">
+        <label for="weightCapacity">Max Weight Capacity</label>
+        <input type="text" class="form-control" id="weightCapacity" name="weight_capacity" placeholder="Weight Capacity">
+    </div>
+    <div class="form-group">
+        <label for="sizeCapacity">Max Size Capacity</label>
+        <input type="text" class="form-control" id="sizeCapacity" name="size_capacity" placeholder="Size Capacity">
+    </div>
+    <div class="form-group">
+        <label for="sizeCapacity">Max Km Capacity</label>
+        <input type="text" class="form-control" id="kmCapacity" name="km_capacity" placeholder="Km Capacity">
+    </div>
+    <div class="form-group">
+        <label for="vehicleType">Type</label>
+        <select class="form-control" id="vehicleType" name="vehicle_type">
+            <option value="normal">Normal</option>
+            <option value="cold">Cold</option>
+        </select>
+    </div>
+
+    <!-- Submission Buttons -->
+    <button type="submit" class="btn btn-gradient-primary me-2">Submit</button>
+    <button type="button" class="btn btn-light">Cancel</button>
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <script>
+    document.getElementById('vehicleForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        var formData = new FormData(this);
+
+        fetch("{% url 'add-vehicle' %}", {  // Replace with the correct URL for your view
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Vehicle and associated areas have been added successfully.',
+                    icon: 'success'
+                }).then(() => {
+                    window.location.href = "{% url 'index' %}";  // Redirect to the index page or another URL
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message,
+                    icon: 'error'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred: ' + error.message,
+                icon: 'error'
+            });
+        });
+    });
+
+
+    </script>            </div>
+          </div>
+    <!-- You can add more HTML elements as needed for your homepage -->
+{% endblock %}
+

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- Page-specific content goes here -->
+
+    <div class="content-wrapper">
+            <div class="page-header">
+                <!--
+              <h3 class="page-title"> Product Table </h3>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="#">Tables</a></li>
+                  <li class="breadcrumb-item active" aria-current="page">Basic tables</li>
+                </ol>
+              </nav>
+              -->
+            </div>
+            <div class="row">
+
+                <!--Area Table-->
+              <div class="col-lg-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Areas</h4>
+                    <table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Area ID</th>
+            <th>Area Name</th>
+            <th>Vehicle ID</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for area in areas %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ area.id }}</td>
+            <td>{{ area.area_name }}</td>
+            <td>{{ area.vehicle }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+                  </div>
+                </div>
+              </div>
+                <!--/Product Table-->
+
+            </div>
+          </div>
+
+    <!-- You can add more HTML elements as needed for your homepage -->
+{% endblock %}
+
